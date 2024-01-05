@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Recirculatory Aquaculture System Dashboard</title>
+    <style>
+      .cards-container {
+        width: 92vw;
+        height: 40vh;
+        display: flex;
+        margin: 0 auto;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px;
+        align-self: center;
+        margin-top: 3.5rem;
+      }
+
+      .card {
+        width: 22%;
+        height: 90%;
+        border-radius: 10px;
+        background-color: aqua;
+        border-color: silver;
+        position: relative;
+        text-align: center;
+      }
+
+      .count-value {
+        text-align: center;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue",
+          sans-serif;
+        font-weight: bolder;
+        font-size: 2.5rem;
+      }
+
+      .label {
+        text-align: center;
+        font-size: 1.2rem;
+        margin-top: -1.6rem;
+      }
+
+      .header-text {
+        text-align: center;
+      }
+      .loading {
+        display: flex;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.8);
+        justify-content: center;
+        align-items: center;
+      }
+
+      .spinner {
+        border: 4px solid rgba(0, 0, 0, 0.1);
+        border-radius: 50%;
+        border-top: 4px solid #3498db;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Responsive Styling for Mobile */
+      @media only screen and (max-width: 600px) {
+        .cards-container {
+          flex-direction: column;
+          height: auto;
+        }
+
+        .card {
+          width: 100%;
+          margin-bottom: 3rem;
+        }
+
+        body {
+          margin: 0 auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="content" style="display: none">
+      <h1 class="header-text">Recirculatory Aquaculture System Dashboard</h1>
+
+      <div class="cards-container">
+        <div class="card">
+          <h4 class="count-value" id="flow-rate">2786</h4>
+          <h5 class="label">Latest Flow Rate</h5>
+        </div>
+        <div class="card">
+          <h4 class="count-value" id="water-level">2786</h4>
+          <h5 class="label">Latest Water Level</h5>
+        </div>
+        <div class="card">
+          <h4 class="count-value" id="latest-tds">2786</h4>
+          <h5 class="label">Latest TDS</h5>
+        </div>
+        <div class="card">
+          <h4 class="count-value" id="temperature">2786</h4>
+          <h5 class="label">Latest Temperature</h5>
+        </div>
+      </div>
+    </div>
+
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+    </div>
+
+    <script type="module">
+      var flowRateEl = document.getElementById("flow-rate");
+      var waterLevelEl = document.getElementById("water-level");
+      var latestTdsEl = document.getElementById("latest-tds");
+      var latestTemperatureEl = document.getElementById("temperature");
+
+      const loadingElement = document.getElementById("loading");
+      const contentElement = document.getElementById("content");
+
+      contentElement.style.display = "none";
+      loadingElement.style.display = "flex";
+
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+      import {
+        getDatabase,
+        ref,
+        get,
+      } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyCWRyfatEZhfw7VpnwwAyzjGowT8wXL4V4",
+        authDomain: "testnode-e6881.firebaseapp.com",
+        databaseURL: "https://testnode-e6881-default-rtdb.firebaseio.com",
+        projectId: "testnode-e6881",
+        storageBucket: "testnode-e6881.appspot.com",
+        messagingSenderId: "840897691787",
+        appId: "1:840897691787:web:3510f95b6b0ac6ae77948e",
+      };
+
+      const app = initializeApp(firebaseConfig);
+
+      const database = getDatabase(app);
+
+      const dataRef = ref(database, "/test");
+
+      function findLatestKey(timestampObject) {
+        let latestKey = null;
+        let latestTimestamp = -Infinity;
+
+        for (const [timestamp, key] of Object.entries(timestampObject)) {
+          const timestampValue = parseInt(timestamp, 10);
+          if (timestampValue > latestTimestamp) {
+            latestTimestamp = timestampValue;
+            latestKey = key;
+          }
+        }
+
+        return latestKey;
+      }
+
+      function findMaxValueInObject(obj) {
+        const values = Object.values(obj);
+
+        if (values.length === 0) {
+          return undefined;
+        }
+
+        return Math.max(...values);
+      }
+
+      get(dataRef)
+        .then((snapshot) => {
+          loadingElement.style.display = "none";
+          contentElement.style.display = "block";
+
+          if (snapshot.exists()) {
+            const data = snapshot.val();
+            console.log(findLatestKey(data.WaterLevel));
+            waterLevelEl.innerText = findMaxValueInObject(
+              data.WaterLevel
+            ).toFixed(2);
+            flowRateEl.innerText = findMaxValueInObject(data.flowRate).toFixed(
+              2
+            );
+            latestTdsEl.innerText = findMaxValueInObject(data.tdsValue).toFixed(
+              2
+            );
+            latestTemperatureEl.innerText = findMaxValueInObject(
+              data.temperature
+            ).toFixed(2);
+          } else {
+          }
+        })
+        .catch((error) => {
+          loadingElement.style.display = "none";
+        });
+    </script>
+  </body>
+</html>
